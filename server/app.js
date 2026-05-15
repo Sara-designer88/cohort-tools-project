@@ -14,11 +14,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 
-// DEFINE SERVER PORT
-// The backend server will run on port 5005
-const PORT = 5005;
-
-
 // IMPORT DATABASE MODELS
 // These models represent collections in MongoDB
 const Cohort = require("./models/Cohort.model");
@@ -34,7 +29,9 @@ const app = express();
 // Research Team - Set up CORS middleware here:
 // ...
 // Enable CORS so frontend apps can access this API
-app.use(cors());
+app.use(cors({
+  origin: process.env.ORIGIN
+}));
 
 // Connect to MongoDB database
 mongoose
@@ -67,31 +64,55 @@ app.use(express.urlencoded({ extended: false }));
 // Allows reading cookies from requests
 app.use(cookieParser());
 
+app.use((req, res, next) => {
+  console.log("Running this middleware on EVERY CALL")
+  //the request stops here.....
+  req.newProperty = "potato"
+  next()
+})
 
 // ROUTES - https://expressjs.com/en/starter/basic-routing.html
 // Devs Team - Start working on the routes here:
 // TEST ROUTE
 // Sends the docs.html file when user visits /docs
-app.get("/docs", (req, res) => {
-
+app.get("/docs", (req, res, next) => {
+  console.log(req.newProperty)
   // __dirname = current folder location
-  res.sendFile(__dirname + "/views/docs.html");
-});
+  // res.sendFile(__dirname + "/views/docs.html");
+  res.status(200).json({message: "looking perfect already"})
+})
+
+app.get("/api/test", (req, res, next) => {
+
+  console.log(req.body) // when we receive a lot of data, usually for document creation or updates
+  console.log(req.query) // when we are trying to search or filter data
+  console.log(req.params) // when we are passings ids, usually for getting the details of a specific document, updating or deleting a specific document
+
+  res.status(200).json({ message: "perfectly working fine" })
+})
 
 
 // GET ALL COHORTS
 // Route: GET /cohorts
-app.get("/cohorts", (req, res) => {
-  Cohort.find() // Find all cohort documents in MongoDB
-    .then((cohorts) => { // Runs if data retrieval succeeds
-      console.log("Retrieved cohorts ->", cohorts); // Display cohorts in terminal
-      res.json(cohorts); // Send cohorts back as JSON response
-    })
-    .catch((error) => { // Runs if an error occurs
-      console.error("Error while retrieving cohorts ->", error);  // Show error in terminal
-      res.status(500).json({error: "Failed to retrieve cohorts" }); // Send error response to client
-    });
-});
+app.get("/api/cohorts", async (req, res) => {
+
+  try {
+    
+    const response = await Cohort.find( {awardsWon: {$gte: 200} } ).select({name: 1, awardsWon: 1})
+    console.log(response)
+
+    if (response.length === 0) {
+      res.status(204).json(response)
+    } else {
+      res.status(200).json(response)
+    }
+
+
+  } catch (error) {
+    console.log(error)
+  }
+
+})
 
 // this is to create a new student
 app.post("/cohorts", async (req,res) =>{
@@ -220,7 +241,11 @@ app.delete("/students/:studentId", async (req,res) =>{
   }
 })
 
+
+// server listen & PORT
+const PORT = process.env.PORT || 5005
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on http://localhost:${PORT}`);
 });
