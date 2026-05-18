@@ -70,7 +70,16 @@ app.use(cookieParser());
 // Sends the docs.html file when user visits /docs
 app.get("/docs", (req, res) => {
   // __dirname = current folder location
-  res.sendFile(__dirname + "/views/docs.html");
+  // res.sendFile(__dirname + "/views/docs.html");
+  res.status(200).json({ message: "looking perfect already" });
+});
+
+app.get("/api/test", (req, res, next) => {
+  console.log(req.body); // when we receive a lot of data, usually for document creation or updates
+  console.log(req.query); // when we are trying to search or filter data
+  console.log(req.params); // when we are passings ids, usually for getting the details of a specific document, updating or deleting a specific document
+
+  res.status(200).json({ message: "perfectly working fine" });
 });
 
 app.get("/", (req, res, next) => {
@@ -79,37 +88,155 @@ app.get("/", (req, res, next) => {
 
 // GET ALL COHORTS
 // Route: GET /cohorts
-app.get("/cohorts", (req, res) => {
-  Cohort.find() // Find all cohort documents in MongoDB
-    .then((cohorts) => {
-      // Runs if data retrieval succeeds
-      console.log("Retrieved cohorts ->", cohorts); // Display cohorts in terminal
-      res.json(cohorts); // Send cohorts back as JSON response
-    })
-    .catch((error) => {
-      // Runs if an error occurs
-      console.error("Error while retrieving cohorts ->", error); // Show error in terminal
-      res.status(500).json({ error: "Failed to retrieve cohorts" }); // Send error response to client
+app.get("/api/cohorts", async (req, res) => {
+  try {
+    const response = await Cohort.find({ awardsWon: { $gte: 200 } }).select({
+      name: 1,
+      awardsWon: 1,
     });
+    console.log(response);
+
+    if (response.length === 0) {
+      res.status(204).json(response);
+    } else {
+      res.status(200).json(response);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// this is to create a new student
+app.post("/cohorts", async (req, res) => {
+  try {
+    const newCohort = {
+      cohortSlug: req.body.cohortSlug,
+      cohortName: req.body.cohortName,
+      program: req.body.program,
+      campus: req.body.campus,
+      startDate: req.body.startDate,
+      endDate: req.body.endDate,
+    };
+    const response = await Cohort.create(newCohort);
+    res.status(200).json(response);
+    console.log("new cohort created");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// this is to update the student
+app.patch("/cohorts/:cohortId", async (req, res) => {
+  try {
+    const updatedCohort = {
+      cohortSlug: req.body.cohortSlug,
+      cohortName: req.body.cohortName,
+      program: req.body.program,
+      campus: req.body.campus,
+      startDate: req.body.startDate,
+      endDate: req.body.endDate,
+    };
+    const response = await Cohort.findByIdAndUpdate(
+      req.params.cohortId,
+      updatedCohort,
+      { new: true },
+    );
+    res.status(200).json(response);
+    console.log("new cohort updated");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// this is to delete a student
+app.delete("/cohorts/:cohortId", async (req, res) => {
+  try {
+    const response = await Cohort.findByIdAndDelete(req.params.cohortId);
+    res.sendStatus(200);
+    console.log("cohort deleted");
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 // GET ALL STUDENTS
 // Route: GET /students
-app.get("/students", (req, res) => {
-  Student.find()
-    .then((students) => {
-      console.log("Retrieved students ->", students);
-      res.json(students);
-    })
-    .catch((error) => {
-      console.error("Error while retrieving students ->", error);
-      res.status(500).json({ error: "Failed to retrieve students" });
-    });
+app.get("/", (req, res) => {
+  try {
+    res.json({ message: "all is good you are connecting to " });
+  } catch (err) {
+    console.log(error);
+  }
+});
+app.get("/students", async (req, res) => {
+  try {
+    const response = await Student.find();
+    console.log("Retrieved students ->", response);
+    res.status(200).json(response);
+  } catch (error) {
+    console.log(error);
+  }
 });
 
-// authRoutes handler
-const indexRouter = require("./routes/index.routes");
-app.use("/api", indexRouter);
+// this is to create a new student
+app.post("/students", async (req, res) => {
+  try {
+    const newStudent = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      phone: req.body.phone,
+      linkedinUrl: req.body.linkedinUrl,
+      program: req.body.proram,
+      background: req.body.background,
+      image: req.body.image,
+      cohort: req.body.cohort,
+    };
+    const response = await Student.create(newStudent);
+    res.status(200).json(response);
+    console.log("new student created");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// this is to update the student
+app.patch("/students/:studentId", async (req, res) => {
+  try {
+    const updatedStudent = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      phone: req.body.phone,
+      linkedinUrl: req.body.linkedinUrl,
+      program: req.body.proram,
+      background: req.body.background,
+      image: req.body.image,
+    };
+    const response = await Student.findByIdAndUpdate(
+      req.params.studentId,
+      updatedStudent,
+      { new: true },
+    );
+    res.status(200).json(response);
+    console.log("new student updated");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// this is to delete a student
+app.delete("/students/:studentId", async (req, res) => {
+  try {
+    const response = await Student.findByIdAndDelete(req.params.studentId);
+    res.sendStatus(200);
+    console.log("student deleted");
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+// server listen & PORT
 
 // Start server
 const PORT = process.env.PORT || 5006;
