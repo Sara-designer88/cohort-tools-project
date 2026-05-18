@@ -1,3 +1,4 @@
+process.loadEnvFile();
 // Express framework for creating the server and routes
 const express = require("express");
 // STATIC DATA
